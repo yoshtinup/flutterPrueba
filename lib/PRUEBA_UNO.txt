@@ -1,0 +1,93 @@
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:http/http.dart' as http;
+import 'dart:io';
+
+void main() {
+  runApp(MaterialApp(
+    home: ImageUploadScreen(),
+  ));
+}
+
+class ImageUploadScreen extends StatefulWidget {
+  @override
+  _ImageUploadScreenState createState() => _ImageUploadScreenState();
+}
+
+class _ImageUploadScreenState extends State<ImageUploadScreen> {
+  File? _image;
+  final picker = ImagePicker();
+
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await picker.pickImage(source: source);
+
+    setState(() {
+      if (pickedFile != null) {
+        _image = File(pickedFile.path);
+      } else {
+        print('No image selected.');
+      }
+    });
+  }
+
+  Future<void> _uploadImage() async {
+    if (_image == null) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('No se ha seleccionado ninguna imagen')));
+      return;
+    }
+
+    final uri = Uri.parse('http://localhost:3000/upload/'); // Cambia la URL si es necesario
+    final request = http.MultipartRequest('POST', uri);
+    request.files.add(await http.MultipartFile.fromPath('image', _image!.path));
+
+    try {
+      final response = await request.send();
+      if (response.statusCode == 201) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Imagen subida exitosamente')));
+      } else {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Error al subir la imagen')));
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Subir Imagen'),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            _image == null
+                ? Text('No se ha seleccionado ninguna imagen.')
+                : Image.file(_image!),
+            SizedBox(height: 20),
+            ElevatedButton.icon(
+              icon: Icon(Icons.photo_library),
+              label: Text('Seleccionar de Galería'),
+              onPressed: () => _pickImage(ImageSource.gallery),
+            ),
+            ElevatedButton.icon(
+              icon: Icon(Icons.camera_alt),
+              label: Text('Tomar una Foto'),
+              onPressed: () => _pickImage(ImageSource.camera),
+            ),
+            SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: _uploadImage,
+              child: Text('Subir Imagen'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+
+void main() {
+  runApp(MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      home: ImageScreen(),
+    );
+  }
+}
+
+class ImageScreen extends StatelessWidget {
+  final String imageUrl = 'http://localhost:3000/image/image-1732185016037.jpeg';  // URL de la imagen obtenida de tu API
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Mostrar Imagen desde API'),
+      ),
+      body: Center(
+        child: FutureBuilder(
+          future: _fetchImage(),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              return CircularProgressIndicator();  // Mostrar indicador de carga mientras se descarga la imagen
+            } else if (snapshot.hasError) {
+              return Text('Error al cargar la imagen');
+            } else {
+              return Image.network(
+                imageUrl,
+                errorBuilder: (context, error, stackTrace) {
+                  return Text('No se pudo cargar la imagen');
+                },
+              );
+            }
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _fetchImage() async {
+    try {
+      // Realizamos una petición GET a la API para confirmar que la imagen existe
+      final response = await http.get(Uri.parse(imageUrl));
+      if (response.statusCode == 200) {
+        // La imagen existe
+      } else {
+        throw Exception('Error al obtener la imagen');
+      }
+    } catch (e) {
+      throw Exception('Error al conectarse con la API');
+    }
+  }
+}
+
